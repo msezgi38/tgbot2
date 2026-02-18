@@ -5,6 +5,8 @@
 # Connects to ivr_bot2 database
 # =============================================================================
 
+import path_setup  # noqa: F401 - adds bot/ to sys.path
+
 import asyncio
 import logging
 from typing import List, Dict, Optional

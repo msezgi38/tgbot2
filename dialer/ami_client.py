@@ -4,6 +4,8 @@
 # Uses callix_trunk for outbound calls via sip.callix.pro
 # =============================================================================
 
+import path_setup  # noqa: F401 - adds bot/ to sys.path
+
 import asyncio
 import logging
 from typing import Dict, Optional

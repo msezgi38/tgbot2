@@ -1,0 +1,17 @@
+[Unit]
+Description=Callix IVR Bot - Campaign Worker
+After=network.target postgresql.service tgbot2-webhook.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/tgbot2/dialer
+ExecStart=/usr/bin/python3 campaign_worker.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

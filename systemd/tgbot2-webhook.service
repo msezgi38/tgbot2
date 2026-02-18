@@ -1,0 +1,17 @@
+[Unit]
+Description=Callix IVR Bot - Webhook Server (Port 8001)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/tgbot2/dialer
+ExecStart=/usr/bin/python3 webhook_server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -5,6 +5,8 @@
 # Receives DTMF events from Asterisk context: press-one-ivr-2
 # =============================================================================
 
+import path_setup  # noqa: F401 - adds bot/ to sys.path
+
 import logging
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
