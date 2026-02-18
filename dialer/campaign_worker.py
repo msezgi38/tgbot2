@@ -82,8 +82,10 @@ class CampaignWorker:
     
     async def processing_loop(self):
         """Main processing loop"""
+        logger.info("🔄 Processing loop started")
         while self.running:
             try:
+                logger.info("🔍 Checking for running campaigns...")
                 campaigns = await self.get_running_campaigns()
                 
                 if campaigns:
@@ -91,11 +93,13 @@ class CampaignWorker:
                     
                     for campaign in campaigns:
                         await self.process_campaign(campaign)
+                else:
+                    logger.info("💤 No running campaigns found")
                 
                 await asyncio.sleep(5)
                 
             except Exception as e:
-                logger.error(f"❌ Error in processing loop: {e}")
+                logger.error(f"❌ Error in processing loop: {e}", exc_info=True)
                 await asyncio.sleep(10)
     
     async def get_running_campaigns(self) -> List[Dict]:
