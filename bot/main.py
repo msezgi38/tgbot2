@@ -2061,7 +2061,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
                 f"💰 <b>Balance:</b> ${mb_balance:.4f}\n"
                 f"📋 <b>Plan:</b> {plan_name}\n"
                 f"📞 <b>Caller ID:</b> {callerid or 'Not Set'}\n"
-                f"🌐 <b>Host:</b> 64.95.13.23\n\n"
+                f"🌐 <b>Host:</b> sip.callix.pro\n\n"
             )
         
         # Show all connected trunks with details
@@ -2381,7 +2381,7 @@ async def handle_trunk_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             trunk = await db.create_trunk(
                 user_id=user_data['id'],
                 name=f"MagnusBilling",
-                sip_host='64.95.13.23',
+                sip_host='sip.callix.pro',
                 sip_username=magnus_username,
                 sip_password=magnus_password,
             )
@@ -2392,7 +2392,7 @@ async def handle_trunk_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             await query.edit_message_text(
                 f"✅ <b>SIP Account Created!</b>\n\n"
                 f"📛 Username: <code>{magnus_username}</code>\n"
-                f"🌐 Host: 64.95.13.23\n"
+                f"🌐 Host: sip.callix.pro\n"
                 f"🔗 Endpoint: <code>{trunk['pjsip_endpoint_name']}</code>"
                 f"{reload_status}",
                 parse_mode='HTML',
