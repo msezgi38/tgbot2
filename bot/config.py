@@ -58,9 +58,9 @@ ASTERISK_RELOAD_CMD = 'asterisk -rx "pjsip reload"'   # Command to reload PJSIP 
 # =============================================================================
 # MagnusBilling API Configuration
 # =============================================================================
-MAGNUSBILLING_URL = "http://64.95.13.23/mbilling"
-MAGNUSBILLING_API_KEY = "uuwpgkckncagfqraekyxtnaexvtonjlk"
-MAGNUSBILLING_API_SECRET = "iitkvywvzctwghjbjjepiybsdamxordt"
+MAGNUSBILLING_URL = "https://sip.callix.pro/mbilling"
+MAGNUSBILLING_API_KEY = "falnbfnzxrwvwgrnutcbprhjrwjehwme"
+MAGNUSBILLING_API_SECRET = "chfxdcubbngpsrhnpmmebuuntpcxhwvc"
 
 # =============================================================================
 # Webhook Server Configuration
