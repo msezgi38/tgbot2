@@ -6,7 +6,7 @@ Wants=postgresql.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/tgbot2/dialer
+WorkingDirectory=/opt/tgbot2/dialer
 ExecStart=/usr/bin/python3 campaign_worker.py
 Restart=always
 RestartSec=5

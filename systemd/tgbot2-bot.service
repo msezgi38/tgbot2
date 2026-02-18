@@ -6,7 +6,7 @@ Wants=postgresql.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/tgbot2/bot
+WorkingDirectory=/opt/tgbot2/bot
 ExecStart=/usr/bin/python3 main.py
 Restart=always
 RestartSec=5
