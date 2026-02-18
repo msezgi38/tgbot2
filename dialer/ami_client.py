@@ -10,6 +10,7 @@ import asyncio
 import logging
 from typing import Dict, Optional
 from panoramisk import Manager
+import path_setup  # Must be before config import
 from config import AMI_CONFIG, IVR_CONTEXT, DEFAULT_CALLER_ID
 
 logging.basicConfig(level=logging.INFO)

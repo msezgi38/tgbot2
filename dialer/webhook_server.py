@@ -18,6 +18,8 @@ import aiohttp
 from fastapi import FastAPI, Request
 import uvicorn
 
+import path_setup  # Must be before config import
+
 from config import (
     DATABASE_URL,
     TELEGRAM_BOT_TOKEN,
