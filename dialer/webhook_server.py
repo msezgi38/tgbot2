@@ -1,232 +1,455 @@
 # =============================================================================
-# DTMF Webhook Server (Bot 2 - Callix)
+# Webhook Server - DTMF & Call Event Handler (User-Scoped)
 # =============================================================================
-# Runs on PORT 8001 (Bot 1 uses PORT 8000)
-# Receives DTMF events from Asterisk context: press-one-ivr-2
+# FastAPI application that receives call events from Asterisk
+# - Processes DTMF keypad presses (Press-1 detection)
+# - Updates call records, campaign stats
+# - Handles per-user billing
 # =============================================================================
 
-import path_setup  # noqa: F401 - adds bot/ to sys.path
-
+import asyncio
 import logging
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from typing import Optional
-import asyncpg
 from datetime import datetime
+from typing import Optional, Dict
+from decimal import Decimal
 
-from config import DATABASE_URL, WEBHOOK_HOST, WEBHOOK_PORT
+import asyncpg
+import aiohttp
+from fastapi import FastAPI, Request
+import uvicorn
+
+from config import (
+    DATABASE_URL,
+    TELEGRAM_BOT_TOKEN,
+    WEBHOOK_HOST,
+    WEBHOOK_PORT,
+    MINIMUM_BILLABLE_SECONDS,
+    BILLING_INCREMENT_SECONDS,
+    COST_PER_MINUTE
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Callix IVR Bot Webhook Server")
+app = FastAPI(title="IVR Webhook Server")
 
 # Database connection pool
 db_pool: Optional[asyncpg.Pool] = None
 
 
-# =============================================================================
-# Request Models
-# =============================================================================
-class DTMFWebhookRequest(BaseModel):
-    call_id: str
-    destination: str
-    dtmf_pressed: int  # 0 or 1
-    callerid: Optional[str] = None
-    hangup_cause: Optional[str] = None
-    duration: Optional[int] = 0
-
-
-# =============================================================================
-# Database Functions
-# =============================================================================
-async def init_db():
-    """Initialize database connection pool"""
-    global db_pool
+async def send_press1_notification(campaign_id: int, phone_number: str, duration: int, cost: float):
+    """Send Telegram notification when someone presses 1"""
     try:
-        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=5, max_size=20)
-        logger.info("✅ Database connection pool created (ivr_bot2)")
+        async with db_pool.acquire() as conn:
+            # Get campaign owner's telegram_id
+            row = await conn.fetchrow("""
+                SELECT u.telegram_id, c.name as campaign_name
+                FROM campaigns c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.id = $1
+            """, campaign_id)
+            
+            if not row:
+                return
+            
+            telegram_id = row['telegram_id']
+            campaign_name = row['campaign_name']
+            
+            text = (
+                f"🔔 <b>Press-1 Alert!</b>\n\n"
+                f"📞 Number: <code>{phone_number}</code>\n"
+                f"📋 Campaign: {campaign_name}\n"
+                f"⏱ Duration: {duration}s\n"
+                f"💰 Cost: ${cost:.4f}\n\n"
+                f"✅ This person pressed 1!"
+            )
+            
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            async with aiohttp.ClientSession() as session:
+                await session.post(url, json={
+                    'chat_id': telegram_id,
+                    'text': text,
+                    'parse_mode': 'HTML'
+                })
+            
+            logger.info(f"🔔 Press-1 notification sent to {telegram_id} for {phone_number}")
     except Exception as e:
-        logger.error(f"❌ Failed to create database pool: {e}")
+        logger.error(f"Failed to send press-1 notification: {e}")
 
 
-async def close_db():
-    """Close database connection pool"""
+@app.on_event("startup")
+async def startup():
+    """Initialize database connection on startup"""
+    global db_pool
+    db_pool = await asyncpg.create_pool(
+        DATABASE_URL, min_size=5, max_size=20
+    )
+    logger.info("✅ Webhook Server started - Database connected")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    """Close database connection on shutdown"""
     global db_pool
     if db_pool:
         await db_pool.close()
-        logger.info("Database connection pool closed")
+    logger.info("Webhook Server stopped")
 
 
-async def update_call_record(
-    call_id: str,
-    dtmf_pressed: int,
-    hangup_cause: Optional[str] = None,
-    duration: int = 0
-):
-    """Update call record in database"""
-    if not db_pool:
-        logger.error("Database pool not initialized")
-        return False
+@app.post("/webhook/dtmf")
+async def handle_dtmf(request: Request):
+    """
+    Handle DTMF events from Asterisk
     
+    Expected payload:
+    {
+        "call_id": "uniqueid",
+        "digit": "1",              (DTMF digit pressed)
+        "duration": 45,            (call duration in seconds)
+        "campaign_id": "123",
+        "campaign_data_id": "456"
+    }
+    """
+    try:
+        # Accept both form-encoded (Asterisk CURL) and JSON (manual test)
+        content_type = request.headers.get('content-type', '')
+        if 'json' in content_type:
+            data = await request.json()
+        else:
+            data = dict(await request.form())
+        
+        call_id = data.get('call_id')
+        digit = data.get('digit', '')
+        duration = int(data.get('duration', 0))
+        campaign_id = int(data.get('campaign_id', 0))
+        campaign_data_id = int(data.get('campaign_data_id', 0))
+        
+        logger.info(f"📥 DTMF Webhook: call={call_id}, digit={digit}, "
+                    f"duration={duration}s, campaign={campaign_id}")
+        
+        pressed_one = (digit == '1')
+        
+        # Calculate billable cost
+        cost = calculate_cost(duration)
+        
+        async with db_pool.acquire() as conn:
+            async with conn.transaction():
+                # Update call record
+                await conn.execute("""
+                    UPDATE calls
+                    SET status = CASE WHEN $1 THEN 'ANSWER' ELSE status END,
+                        dtmf_pressed = $2,
+                        duration = $3,
+                        billsec = $3,
+                        cost = $4,
+                        answered_at = $5,
+                        ended_at = $5
+                    WHERE call_id = $6
+                """, True, 1 if pressed_one else 0,
+                    duration, cost, datetime.now(), call_id)
+                
+                # Update campaign_data status
+                status = 'completed' if pressed_one else 'answered'
+                await conn.execute("""
+                    UPDATE campaign_data
+                    SET status = $1
+                    WHERE id = $2
+                """, status, campaign_data_id)
+                
+                # Update campaign counters
+                if pressed_one:
+                    await conn.execute("""
+                        UPDATE campaigns
+                        SET completed = completed + 1,
+                            answered = answered + 1,
+                            pressed_one = pressed_one + 1,
+                            actual_cost = actual_cost + $1
+                        WHERE id = $2
+                    """, cost, campaign_id)
+                else:
+                    await conn.execute("""
+                        UPDATE campaigns
+                        SET completed = completed + 1,
+                            answered = answered + 1,
+                            actual_cost = actual_cost + $1
+                        WHERE id = $2
+                    """, cost, campaign_id)
+                
+                # Deduct from user credits
+                await conn.execute("""
+                    UPDATE users
+                    SET credits = credits - $1,
+                        total_spent = total_spent + $1,
+                        total_calls = total_calls + 1
+                    WHERE id = (
+                        SELECT user_id FROM campaigns WHERE id = $2
+                    )
+                """, cost, campaign_id)
+        
+        # Send Telegram notification for press-1
+        if pressed_one:
+            try:
+                async with db_pool.acquire() as conn:
+                    phone_row = await conn.fetchrow(
+                        "SELECT phone_number FROM campaign_data WHERE id = $1",
+                        campaign_data_id
+                    )
+                    phone = phone_row['phone_number'] if phone_row else 'Unknown'
+                asyncio.create_task(
+                    send_press1_notification(campaign_id, phone, duration, float(cost))
+                )
+            except Exception as e:
+                logger.error(f"Error getting phone for notification: {e}")
+        
+        return {
+            "status": "ok",
+            "pressed_one": pressed_one,
+            "cost": float(cost),
+            "duration": duration
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/webhook/hangup")
+async def handle_hangup(request: Request):
+    """
+    Handle call hangup events
+    
+    Expected payload:
+    {
+        "call_id": "uniqueid",
+        "duration": 0,
+        "hangup_cause": "NORMAL_CLEARING",
+        "campaign_id": "123",
+        "campaign_data_id": "456"
+    }
+    """
+    try:
+        # Accept both form-encoded (Asterisk CURL) and JSON (manual test)
+        content_type = request.headers.get('content-type', '')
+        if 'json' in content_type:
+            data = await request.json()
+        else:
+            data = dict(await request.form())
+        
+        call_id = data.get('call_id')
+        duration = int(data.get('duration', 0))
+        hangup_cause = data.get('hangup_cause', 'Unknown')
+        campaign_id = int(data.get('campaign_id', 0))
+        campaign_data_id = int(data.get('campaign_data_id', 0))
+        
+        logger.info(f"📴 Hangup Webhook: call={call_id}, "
+                    f"duration={duration}s, cause={hangup_cause}")
+        
+        cost = calculate_cost(duration)
+        
+        # Determine status based on hangup cause
+        if hangup_cause in ('BUSY', 'USER_BUSY'):
+            status = 'BUSY'
+        elif hangup_cause in ('NO_ANSWER', 'NO_USER_RESPONSE'):
+            status = 'NO ANSWER'
+        elif duration > 0:
+            status = 'ANSWER'
+        else:
+            status = 'FAILED'
+        
+        async with db_pool.acquire() as conn:
+            async with conn.transaction():
+                # Update call record
+                await conn.execute("""
+                    UPDATE calls
+                    SET status = $1,
+                        duration = $2,
+                        billsec = $2,
+                        cost = $3,
+                        hangup_cause = $4,
+                        ended_at = $5
+                    WHERE call_id = $6
+                """, status, duration, cost, hangup_cause,
+                    datetime.now(), call_id)
+                
+                # Update campaign_data
+                data_status = 'failed' if status in ('BUSY', 'NO ANSWER', 'FAILED') else 'completed'
+                await conn.execute("""
+                    UPDATE campaign_data
+                    SET status = $1
+                    WHERE id = $2
+                """, data_status, campaign_data_id)
+                
+                # Update campaign counters
+                if status in ('BUSY', 'NO ANSWER', 'FAILED'):
+                    await conn.execute("""
+                        UPDATE campaigns
+                        SET completed = completed + 1,
+                            failed = failed + 1,
+                            actual_cost = actual_cost + $1
+                        WHERE id = $2
+                    """, cost, campaign_id)
+                
+                # Deduct cost even for failed calls (if billable)
+                if cost > 0:
+                    await conn.execute("""
+                        UPDATE users
+                        SET credits = credits - $1,
+                            total_spent = total_spent + $1,
+                            total_calls = total_calls + 1
+                        WHERE id = (
+                            SELECT user_id FROM campaigns WHERE id = $2
+                        )
+                    """, cost, campaign_id)
+        
+        return {
+            "status": "ok",
+            "call_status": status,
+            "cost": float(cost)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Hangup webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/webhook/oxapay")
+async def handle_oxapay_webhook(request: Request):
+    """
+    Handle Oxapay payment completion webhook
+    
+    Oxapay sends POST when payment status changes.
+    On successful payment, credits are added to user's account.
+    """
+    try:
+        data = await request.json()
+        
+        track_id = data.get('trackId', '')
+        status = data.get('status', '')
+        amount = float(data.get('amount', 0))
+        order_id = data.get('orderId', '')
+        
+        logger.info(f"💰 Oxapay Webhook: track={track_id}, status={status}, amount={amount}")
+        
+        # Only process successful/completed payments
+        if status not in ('Paid', 'Confirming', 'Complete'):
+            logger.info(f"⏳ Payment {track_id} status: {status} (waiting)")
+            return {"status": "ok", "action": "waiting"}
+        
+        async with db_pool.acquire() as conn:
+            async with conn.transaction():
+                # Find payment record
+                payment = await conn.fetchrow("""
+                    SELECT id, user_id, credits, status as payment_status
+                    FROM payments
+                    WHERE track_id = $1
+                """, track_id)
+                
+                if not payment:
+                    logger.warning(f"⚠️ Payment not found: {track_id}")
+                    return {"status": "error", "message": "Payment not found"}
+                
+                # Avoid double-crediting
+                if payment['payment_status'] == 'completed':
+                    logger.info(f"ℹ️ Payment {track_id} already processed")
+                    return {"status": "ok", "action": "already_processed"}
+                
+                credits_to_add = payment['credits']
+                user_id = payment['user_id']
+                
+                # Update payment status
+                await conn.execute("""
+                    UPDATE payments
+                    SET status = 'completed', completed_at = $1
+                    WHERE track_id = $2
+                """, datetime.now(), track_id)
+                
+                # Add credits to user
+                await conn.execute("""
+                    UPDATE users
+                    SET credits = credits + $1
+                    WHERE id = $2
+                """, credits_to_add, user_id)
+                
+                logger.info(f"✅ Payment completed! User {user_id} +{credits_to_add} credits")
+        
+        return {
+            "status": "ok",
+            "action": "credits_added",
+            "credits": credits_to_add
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Oxapay webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/stats/user/{user_id}")
+async def get_user_stats(user_id: int):
+    """Get per-user statistics"""
     try:
         async with db_pool.acquire() as conn:
-            cost = calculate_cost(duration)
+            stats = await conn.fetchrow("""
+                SELECT 
+                    u.credits,
+                    u.total_spent,
+                    u.total_calls,
+                    (SELECT COUNT(*) FROM campaigns WHERE user_id = u.id) as campaigns,
+                    (SELECT COUNT(*) FROM user_trunks WHERE user_id = u.id AND status = 'active') as active_trunks,
+                    (SELECT COUNT(*) FROM leads WHERE user_id = u.id) as lead_lists
+                FROM users u
+                WHERE u.id = $1
+            """, user_id)
             
-            await conn.execute("""
-                UPDATE calls
-                SET dtmf_pressed = $1,
-                    hangup_cause = $2,
-                    billsec = $3,
-                    cost = $4,
-                    ended_at = $5,
-                    status = $6
-                WHERE call_id = $7
-            """, dtmf_pressed, hangup_cause, duration, cost, datetime.now(),
-                'ANSWERED' if dtmf_pressed else 'NO_DTMF', call_id)
-            
-            await conn.execute("""
-                UPDATE campaigns
-                SET completed = completed + 1,
-                    pressed_one = pressed_one + $1,
-                    actual_cost = actual_cost + $2
-                WHERE id = (SELECT campaign_id FROM calls WHERE call_id = $3)
-            """, dtmf_pressed, cost, call_id)
-            
-            await conn.execute("""
-                UPDATE campaign_data
-                SET status = 'completed'
-                WHERE call_id = $1
-            """, call_id)
-            
-            await conn.execute("""
-                UPDATE users
-                SET credits = credits - $1,
-                    total_spent = total_spent + $1
-                WHERE id = (
-                    SELECT user_id FROM campaigns
-                    WHERE id = (SELECT campaign_id FROM calls WHERE call_id = $2)
-                )
-            """, cost, call_id)
-            
-            logger.info(f"✅ Updated call {call_id}: DTMF={dtmf_pressed}, Cost={cost}")
-            return True
+            if stats:
+                return {"status": "ok", "stats": dict(stats)}
+            return {"status": "error", "message": "User not found"}
             
     except Exception as e:
-        logger.error(f"❌ Error updating call record: {e}")
-        return False
+        return {"status": "error", "message": str(e)}
 
 
-def calculate_cost(duration_seconds: int) -> float:
-    """Calculate call cost based on duration (6-second billing increments)"""
-    from config import COST_PER_MINUTE, BILLING_INCREMENT_SECONDS, MINIMUM_BILLABLE_SECONDS
+def calculate_cost(duration_seconds: int) -> Decimal:
+    """
+    Calculate call cost based on duration
     
-    if duration_seconds < MINIMUM_BILLABLE_SECONDS:
-        billable_seconds = MINIMUM_BILLABLE_SECONDS
-    else:
-        billable_seconds = (
-            (duration_seconds + BILLING_INCREMENT_SECONDS - 1) // BILLING_INCREMENT_SECONDS
-        ) * BILLING_INCREMENT_SECONDS
+    Rules:
+    - Minimum billable: MINIMUM_BILLABLE_SECONDS (default 6s)
+    - Billing increment: BILLING_INCREMENT_SECONDS (default 6s)
+    - Cost per minute: COST_PER_MINUTE from config
+    """
+    if duration_seconds <= 0:
+        return Decimal('0')
     
-    billable_minutes = billable_seconds / 60.0
-    cost = billable_minutes * COST_PER_MINUTE
+    # Apply minimum
+    billable = max(duration_seconds, MINIMUM_BILLABLE_SECONDS)
+    
+    # Round up to next increment
+    if billable % BILLING_INCREMENT_SECONDS != 0:
+        billable = ((billable // BILLING_INCREMENT_SECONDS) + 1) * BILLING_INCREMENT_SECONDS
+    
+    # Calculate cost
+    cost = Decimal(str(COST_PER_MINUTE)) * Decimal(str(billable)) / Decimal('60')
     
     return round(cost, 4)
 
 
 # =============================================================================
-# API Endpoints
-# =============================================================================
-@app.on_event("startup")
-async def startup():
-    """Initialize on startup"""
-    await init_db()
-    logger.info(f"🚀 Callix Webhook server started on port {WEBHOOK_PORT}")
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    """Cleanup on shutdown"""
-    await close_db()
-    logger.info("🛑 Callix Webhook server stopped")
-
-
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {
-        "service": "Callix IVR Bot Webhook Server",
-        "status": "running",
-        "version": "1.0",
-        "port": WEBHOOK_PORT
-    }
-
-
-@app.post("/dtmf_webhook")
-async def dtmf_webhook(
-    request: DTMFWebhookRequest,
-    background_tasks: BackgroundTasks
-):
-    """Receive DTMF webhook from Asterisk dialplan (press-one-ivr-2 context)"""
-    logger.info(f"📨 Webhook received: {request.dict()}")
-    
-    if not request.call_id:
-        raise HTTPException(status_code=400, detail="call_id is required")
-    
-    background_tasks.add_task(
-        update_call_record,
-        request.call_id,
-        request.dtmf_pressed,
-        request.hangup_cause,
-        request.duration or 0
-    )
-    
-    return {
-        "status": "success",
-        "message": "Webhook processed",
-        "call_id": request.call_id,
-        "dtmf_pressed": request.dtmf_pressed
-    }
-
-
-@app.get("/stats")
-async def get_stats():
-    """Get overall system statistics"""
-    if not db_pool:
-        raise HTTPException(status_code=500, detail="Database not initialized")
-    
-    try:
-        async with db_pool.acquire() as conn:
-            total_users = await conn.fetchval("SELECT COUNT(*) FROM users")
-            total_campaigns = await conn.fetchval("SELECT COUNT(*) FROM campaigns")
-            total_calls = await conn.fetchval("SELECT COUNT(*) FROM calls")
-            successful_calls = await conn.fetchval(
-                "SELECT COUNT(*) FROM calls WHERE dtmf_pressed = 1"
-            )
-            
-            success_rate = (successful_calls / total_calls * 100) if total_calls > 0 else 0
-            
-            return {
-                "total_users": total_users,
-                "total_campaigns": total_campaigns,
-                "total_calls": total_calls,
-                "successful_calls": successful_calls,
-                "success_rate": f"{success_rate:.2f}%"
-            }
-            
-    except Exception as e:
-        logger.error(f"Error fetching stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =============================================================================
-# Run Server
+# Main Entry Point
 # =============================================================================
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
-        app,
+        "webhook_server:app",
         host=WEBHOOK_HOST,
         port=WEBHOOK_PORT,
-        log_level="info"
+        reload=False,
+        workers=2
     )
