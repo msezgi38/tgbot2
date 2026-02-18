@@ -91,7 +91,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sub_status = await db.get_subscription_status(user.id)
         if sub_status == 'frozen':
             await update.message.reply_text(
-                "<b>1337 Press One</b>\n\n"
+                "<b>Callix Press One</b>\n\n"
                 f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                 "<b>\u26d4 Subscription Frozen</b>\n"
                 "Your subscription has been frozen by an admin.\n"
@@ -103,7 +103,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # No active subscription — show subscribe screen
         price = bot_settings['monthly_price']
         sub_text = (
-            "<b>1337 Press One</b>\n\n"
+            "<b>Callix Press One</b>\n\n"
             f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
             "<b>\u26a0\ufe0f Subscription Required</b>\n"
             f"Monthly access: <b>${price:.2f}</b>/month\n\n"
@@ -163,7 +163,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if has_sip:
         dashboard_text = (
-            "<b>1337 Press One</b>\n\n"
+            "<b>Callix Press One</b>\n\n"
             f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
             "<b>Your Settings</b>\n"
             f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {mb_callerid}\n\n"
@@ -175,7 +175,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         dashboard_text = (
-            "<b>1337 Press One</b>\n\n"
+            "<b>Callix Press One</b>\n\n"
             f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
             "<b>Your Settings</b>\n"
             f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {user_data.get('caller_id', 'Not Set')}\n\n"
@@ -1546,7 +1546,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             sub_status = await db.get_subscription_status(user.id)
             if sub_status == 'frozen':
                 await query.edit_message_text(
-                    "<b>1337 Press One</b>\n\n"
+                    "<b>Callix Press One</b>\n\n"
                     f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                     "<b>\u26d4 Subscription Frozen</b>\n"
                     "Your subscription has been frozen by an admin.\n"
@@ -1557,7 +1557,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             
             price = bot_settings['monthly_price']
             sub_text = (
-                "<b>1337 Press One</b>\n\n"
+                "<b>Callix Press One</b>\n\n"
                 f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                 "<b>\u26a0\ufe0f Subscription Required</b>\n"
                 f"Monthly access: <b>${price:.2f}</b>/month\n\n"
@@ -1612,7 +1612,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
         
         if has_sip:
             dashboard_text = (
-                "<b>1337 Press One</b>\n\n"
+                "<b>Callix Press One</b>\n\n"
                 f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
                 "<b>Your Settings</b>\n"
                 f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {mb_callerid}\n\n"
@@ -1624,7 +1624,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             )
         else:
             dashboard_text = (
-                "<b>1337 Press One</b>\n\n"
+                "<b>Callix Press One</b>\n\n"
                 f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
                 "<b>Your Settings</b>\n"
                 f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {user_data.get('caller_id', 'Not Set')}\n\n"
@@ -2293,7 +2293,7 @@ Balance: ${user_data.get('credits', 0):.2f}
     
     elif action == "support":
         await query.edit_message_text(
-            "\U0001f4ac <b>Support</b>\n\nTelegram: @global1337support",
+            "\U0001f4ac <b>Support</b>\n\nTelegram: @callixcalvin",
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U0001f519 Main Menu", callback_data="menu_main")]])
         )
@@ -2311,7 +2311,7 @@ Balance: ${user_data.get('credits', 0):.2f}
             "Select your leads, voice file, and press Launch. The system will auto-dial and play your message.\n\n"
             "<b>5. Press-1 Detection</b>\n"
             "When the callee presses 1, it's logged as a successful conversion. Track results in Live Statistics.\n\n"
-            "\u2753 Need help? Contact @global1337support"
+            "\u2753 Need help? Contact @callixcalvin"
         )
         await query.edit_message_text(
             guide_text,
