@@ -230,7 +230,7 @@ class Database:
             trunk_dict = dict(trunk)
             
             # Set auto-generated pjsip endpoint name
-            endpoint_name = f"user_{user_id}_trunk_{trunk_dict['id']}"
+            endpoint_name = f"callix_{user_id}_trunk_{trunk_dict['id']}"
             await conn.execute("""
                 UPDATE user_trunks SET pjsip_endpoint_name = $1 WHERE id = $2
             """, endpoint_name, trunk_dict['id'])

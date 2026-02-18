@@ -12,7 +12,7 @@ import os
 import subprocess
 from typing import List, Dict
 
-from config import DATABASE_URL, PJSIP_CONFIG_DIR, PJSIP_USERS_CONF, ASTERISK_RELOAD_CMD
+from config import DATABASE_URL, PJSIP_CONFIG_DIR, PJSIP_USERS_CONF, ASTERISK_RELOAD_CMD, IVR_CONTEXT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ contact=sip:{host}:{port}
 [{ep}]
 type=endpoint
 transport={transport}
-context=press-one-ivr
+context={IVR_CONTEXT}
 outbound_auth={ep}_auth
 aors={ep}
 from_user={user}
