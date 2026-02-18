@@ -41,7 +41,7 @@ DATABASE_CONFIG = {
     "port": 5432,
     "database": "ivr_bot2",                 # ← Different database name!
     "user": "postgres",
-    "password": "zmHsVfTT3yiy8YQX",
+    "password": "ivr2026secure",
 }
 
 DATABASE_URL = f"postgresql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['database']}"
@@ -53,7 +53,7 @@ AMI_CONFIG = {
     "host": "127.0.0.1",
     "port": 5038,
     "username": "ivr_bot",                  # Same AMI user (shared Asterisk)
-    "secret": "IVRBot@Secure2026!",
+    "secret": "IVRBotSecure2026",
 }
 
 # =============================================================================
