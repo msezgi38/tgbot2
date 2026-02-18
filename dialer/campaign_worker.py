@@ -105,6 +105,11 @@ class CampaignWorker:
     async def get_running_campaigns(self) -> List[Dict]:
         """Fetch running campaigns with their user trunk info"""
         async with self.db_pool.acquire() as conn:
+            # Debug: verify which database we're connected to
+            db_name = await conn.fetchval("SELECT current_database()")
+            count = await conn.fetchval("SELECT COUNT(*) FROM campaigns WHERE status = 'running'")
+            logger.info(f"🔍 DB={db_name}, running campaigns count={count}")
+            
             rows = await conn.fetch("""
                 SELECT 
                     c.id, c.user_id, c.name, c.caller_id, 
