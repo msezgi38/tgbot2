@@ -14,7 +14,7 @@ TELEGRAM_BOT_TOKEN = "8309805045:AAFhVcnCMGSEkdThOWu1tS09mVFKWivWz2c"
 # =============================================================================
 OXAPAY_API_KEY = "SPIWDL-YMIWY2-RSRZRO-QB9H59"
 OXAPAY_API_URL = "https://api.oxapay.com/v1/payment/invoice"
-OXAPAY_WEBHOOK_URL = "http://195.85.114.55/webhook/oxapay2"  # ⚠️ UPDATE THIS
+OXAPAY_WEBHOOK_URL = "http://195.85.114.55:8001/webhook/oxapay"
 
 # Payment Configuration
 MIN_TOPUP_AMOUNT = 50  # Minimum $50 USDT top-up
