@@ -146,6 +146,7 @@ CREATE TABLE campaigns (
     failed INTEGER DEFAULT 0,                         -- Failed calls
     status VARCHAR(50) DEFAULT 'draft',               -- draft, running, paused, completed
     voice_file VARCHAR(500),                            -- Path to voice/audio file for IVR
+    outro_file VARCHAR(500),                             -- Path to outro audio file (plays after press-1)
     estimated_cost DECIMAL(10, 2),                    -- Estimated credit cost
     actual_cost DECIMAL(10, 2) DEFAULT 0.00,          -- Actual cost so far
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
