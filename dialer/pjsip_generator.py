@@ -69,12 +69,15 @@ transport={transport}
 outbound_auth={ep}_auth
 server_uri=sip:{host}:{port}
 client_uri=sip:{user}@{host}
+auth_rejection_permanent=no
+contact_user={user}
 
 [{ep}_auth]
 type=auth
 auth_type=userpass
 username={user}
 password={password}
+realm={host}
 
 [{ep}]
 type=aor
