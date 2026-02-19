@@ -77,7 +77,7 @@ type=auth
 auth_type=userpass
 username={user}
 password={password}
-realm={host}
+realm=asterisk
 
 [{ep}]
 type=aor
