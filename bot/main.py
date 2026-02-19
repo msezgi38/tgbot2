@@ -380,6 +380,241 @@ async def handle_buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 # =============================================================================
+# Credit Payment Confirmation & Background Tracking
+# =============================================================================
+
+async def _confirm_credit_payment(track_id: str, bot_app=None):
+    """Confirm credit payment: DB + MagnusBilling + Telegram notification.
+    Returns True if confirmed, False if already confirmed or not found."""
+    # Get payment info before confirming (need MB details)
+    payment_info = await db.get_payment_by_track_id(track_id)
+    if not payment_info or payment_info['status'] != 'pending':
+        return False
+    
+    # Confirm in DB (adds credits to user)
+    confirmed = await db.confirm_payment(track_id)
+    if not confirmed:
+        return False
+    
+    amount = payment_info['credits']
+    telegram_id = payment_info['telegram_id']
+    mb_user_id = payment_info.get('magnus_user_id')
+    mb_username = payment_info.get('magnus_username', '')
+    
+    # Add credit to MagnusBilling SIP account
+    if mb_user_id:
+        try:
+            await magnus.add_credit(
+                int(mb_user_id),
+                amount,
+                f"Oxapay payment {track_id}"
+            )
+            logger.info(f"💰 MB credit added: +${amount:.2f} for {mb_username}")
+        except Exception as e:
+            logger.error(f"❌ Failed to add MB credit for {mb_username}: {e}")
+    
+    # Send Telegram notification
+    if bot_app:
+        try:
+            await bot_app.bot.send_message(
+                chat_id=telegram_id,
+                text=(
+                    f"✅ <b>Payment Confirmed!</b>\n\n"
+                    f"💰 <b>${amount:.2f}</b> credits added to your SIP account.\n"
+                    f"📞 Account: <code>{mb_username}</code>\n\n"
+                    f"Your balance has been updated. 🎉"
+                ),
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            logger.warning(f"Could not send payment notification: {e}")
+    
+    logger.info(f"✅ Credit payment confirmed: {track_id} → +${amount:.2f}")
+    return True
+
+
+async def track_payment(track_id: str, bot_app=None):
+    """Background task: check payment status every 30s for 30 min"""
+    logger.info(f"🔄 Background tracker started for payment {track_id}")
+    for i in range(60):  # 60 × 30s = 30 min
+        await asyncio.sleep(30)
+        try:
+            status_result = await oxapay.check_payment_status(track_id)
+            status = status_result.get('status', '').lower() if status_result else ''
+            if status in ('paid', 'complete', 'completed', 'confirmed'):
+                result = await _confirm_credit_payment(track_id, bot_app)
+                if result:
+                    logger.info(f"✅ Background tracker confirmed payment {track_id}")
+                return
+            elif status in ('expired', 'failed', 'canceled'):
+                logger.info(f"❌ Payment {track_id} is {status}, stopping tracker")
+                return
+        except Exception as e:
+            logger.warning(f"Background track error for {track_id}: {e}")
+    logger.info(f"⏰ Background tracker timed out for {track_id}")
+
+
+async def handle_credit_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle credit payment check status and admin confirm callbacks"""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    data = query.data
+    
+    if data.startswith("credit_check_"):
+        track_id = data.replace("credit_check_", "")
+        
+        # Check if already confirmed
+        payment_info = await db.get_payment_by_track_id(track_id)
+        if not payment_info:
+            await query.edit_message_text(
+                "❌ Payment not found.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                ])
+            )
+            return
+        
+        if payment_info['status'] == 'confirmed':
+            await query.edit_message_text(
+                f"✅ <b>Payment Already Confirmed!</b>\n\n"
+                f"💰 <b>${payment_info['credits']:.2f}</b> credits were added.\n"
+                f"Track ID: <code>{track_id}</code>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💰 View Balance", callback_data="menu_balance")],
+                    [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                ])
+            )
+            return
+        
+        # Check with Oxapay API
+        try:
+            status_result = await oxapay.check_payment_status(track_id)
+            status = status_result.get('status', '').lower() if status_result else ''
+            
+            if status in ('paid', 'complete', 'completed', 'confirmed'):
+                result = await _confirm_credit_payment(track_id, context.application)
+                if result:
+                    await query.edit_message_text(
+                        f"✅ <b>Payment Confirmed!</b>\n\n"
+                        f"💰 <b>${payment_info['credits']:.2f}</b> credits added to your SIP account.\n\n"
+                        f"Your balance has been updated! 🎉",
+                        parse_mode='HTML',
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("💰 View Balance", callback_data="menu_balance")],
+                            [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                        ])
+                    )
+                else:
+                    await query.edit_message_text(
+                        f"⚠️ Payment status is confirmed but could not process.\n"
+                        f"Please contact support.",
+                        parse_mode='HTML',
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                        ])
+                    )
+            elif status in ('expired', 'failed', 'canceled'):
+                await query.edit_message_text(
+                    f"❌ <b>Payment {status.capitalize()}</b>\n\n"
+                    f"Track ID: <code>{track_id}</code>\n"
+                    f"Please create a new payment.",
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("💳 New Payment", callback_data="mb_add_credit")],
+                        [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                    ])
+                )
+            else:
+                await query.edit_message_text(
+                    f"⏳ <b>Payment Pending</b>\n\n"
+                    f"Amount: <b>${payment_info['credits']:.2f}</b>\n"
+                    f"Track ID: <code>{track_id}</code>\n"
+                    f"Status: <b>{status or 'waiting'}</b>\n\n"
+                    f"Please complete the payment or wait for confirmation.",
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("💳 Pay Now", url=payment_info.get('payment_url', ''))],
+                        [InlineKeyboardButton("🔄 Check Again", callback_data=f"credit_check_{track_id}")],
+                        [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                    ])
+                )
+        except Exception as e:
+            logger.error(f"Credit check error: {e}")
+            await query.edit_message_text(
+                f"⚠️ Could not check status: {str(e)[:100]}\n\nTry again later.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data=f"credit_check_{track_id}")],
+                    [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
+                ])
+            )
+    
+    elif data.startswith("credit_confirm_"):
+        # Admin manual confirm
+        if user.id not in ADMIN_TELEGRAM_IDS:
+            return
+        
+        track_id = data.replace("credit_confirm_", "")
+        result = await _confirm_credit_payment(track_id, context.application)
+        
+        if result:
+            await query.answer("✅ Payment confirmed!", show_alert=True)
+        else:
+            await query.answer("❌ Already confirmed or not found", show_alert=True)
+        
+        # Refresh pending payments list
+        query.data = "credit_admin_payments"
+        await handle_credit_callbacks(update, context)
+    
+    elif data == "credit_admin_payments":
+        # Admin: show pending payments
+        if user.id not in ADMIN_TELEGRAM_IDS:
+            return
+        
+        pending = await db.get_pending_payments()
+        if not pending:
+            await query.edit_message_text(
+                "✅ <b>No pending payments.</b>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Admin Panel", callback_data="menu_admin")]
+                ])
+            )
+            return
+        
+        text = f"💳 <b>Pending Payments ({len(pending)})</b>\n\n"
+        keyboard = []
+        
+        for p in pending[:15]:
+            name = p.get('first_name') or p.get('username') or str(p.get('telegram_id', '?'))
+            created = p.get('created_at')
+            created_str = created.strftime('%d/%m %H:%M') if created else 'N/A'
+            text += (
+                f"⏳ <b>{name}</b> — ${p['credits']:.2f}\n"
+                f"   🆔 <code>{p['track_id'][:20]}</code> | {created_str}\n"
+            )
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"✅ Confirm ${p['credits']:.0f} ({name[:12]})",
+                    callback_data=f"credit_confirm_{p['track_id']}"
+                )
+            ])
+        
+        if len(pending) > 15:
+            text += f"\n...and {len(pending) - 15} more"
+        
+        keyboard.append([InlineKeyboardButton("🔄 Refresh", callback_data="credit_admin_payments")])
+        keyboard.append([InlineKeyboardButton("🔙 Admin Panel", callback_data="menu_admin")])
+        
+        await query.edit_message_text(
+            text, parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+# =============================================================================
 # Message Handler (Campaign creation + Trunk/Lead input)
 # =============================================================================
 
@@ -731,15 +966,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     'mb_user_id': mb_user_id,
                 }
                 
+                # Start background payment tracker
+                asyncio.create_task(track_payment(
+                    payment['track_id'],
+                    bot_app=context.application
+                ))
+                
                 await update.message.reply_text(
                     f"💳 <b>Payment Created</b>\n\n"
                     f"Amount: <b>${amount:.2f}</b> {DEFAULT_CURRENCY}\n"
-                    f"Account: <code>{mb_username}</code>\n\n"
+                    f"Account: <code>{mb_username}</code>\n"
+                    f"Track ID: <code>{payment['track_id']}</code>\n\n"
                     f"Click 'Pay Now' to complete payment.\n"
                     f"Credit will be added to your SIP account automatically.",
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("💳 Pay Now", url=payment.get('payment_url', ''))],
+                        [InlineKeyboardButton("🔄 Check Status", callback_data=f"credit_check_{payment['track_id']}")],
                         [InlineKeyboardButton("🔙 SIP Account", callback_data="menu_trunks")]
                     ])
                 )
@@ -1693,6 +1936,9 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             [
                 InlineKeyboardButton("📝 View Subs", callback_data="menu_admin_subs"),
                 InlineKeyboardButton("📊 System Stats", callback_data="menu_admin_stats")
+            ],
+            [
+                InlineKeyboardButton("💳 Pending Payments", callback_data="credit_admin_payments")
             ],
             [InlineKeyboardButton("🔙 Main Menu", callback_data="menu_main")]
         ]
@@ -3349,6 +3595,7 @@ def main():
     application.add_handler(CommandHandler("users", admin_users_command))
     
     # Callback handlers
+    application.add_handler(CallbackQueryHandler(handle_credit_callbacks, pattern="^credit_"))
     application.add_handler(CallbackQueryHandler(handle_subscribe_callbacks, pattern="^sub_"))
     application.add_handler(CallbackQueryHandler(handle_buy_callback, pattern="^buy_"))
     application.add_handler(CallbackQueryHandler(handle_start_campaign, pattern="^start_campaign_"))

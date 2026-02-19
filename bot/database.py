@@ -504,6 +504,30 @@ class Database:
                 logger.info(f"💳 Payment confirmed: {track_id} → +{payment['credits']} credits")
                 return True
     
+    async def get_payment_by_track_id(self, track_id: str) -> Optional[Dict]:
+        """Get payment details by track ID"""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT p.*, u.telegram_id, u.magnus_username, u.magnus_user_id
+                FROM payments p
+                JOIN users u ON u.id = p.user_id
+                WHERE p.track_id = $1
+            """, track_id)
+            return dict(row) if row else None
+    
+    async def get_pending_payments(self) -> List[Dict]:
+        """Get all pending payments with user info (for admin panel)"""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT p.*, u.telegram_id, u.username, u.first_name, u.magnus_username
+                FROM payments p
+                JOIN users u ON u.id = p.user_id
+                WHERE p.status = 'pending'
+                ORDER BY p.created_at DESC
+                LIMIT 50
+            """)
+            return [dict(r) for r in rows]
+    
     # =========================================================================
     # Subscription Operations
     # =========================================================================

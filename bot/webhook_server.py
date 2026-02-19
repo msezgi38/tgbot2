@@ -9,6 +9,7 @@ import logging
 import json
 from aiohttp import web
 from datetime import datetime
+from magnus_client import magnus
 
 logger = logging.getLogger(__name__)
 
@@ -323,21 +324,33 @@ class WebhookServer:
         confirmed = await self.db.confirm_payment(track_id, tx_hash)
         if confirmed:
             logger.info(f"✅ Top-up payment confirmed: {track_id}")
-            # Get payment info to notify user
+            # Get payment info to notify user and add MB credit
             try:
                 async with self.db.pool.acquire() as conn:
                     payment = await conn.fetchrow("""
-                        SELECT p.credits, u.telegram_id 
+                        SELECT p.credits, u.telegram_id, u.magnus_username, u.magnus_user_id
                         FROM payments p 
                         JOIN users u ON u.id = p.user_id 
                         WHERE p.track_id = $1
                     """, track_id)
                     if payment:
+                        # Add credit to MagnusBilling SIP account
+                        if payment.get('magnus_user_id'):
+                            try:
+                                await magnus.add_credit(
+                                    int(payment['magnus_user_id']),
+                                    payment['credits'],
+                                    f"Oxapay payment {track_id}"
+                                )
+                                logger.info(f"💰 MB credit added: +${payment['credits']:.2f} for MB user {payment['magnus_user_id']}")
+                            except Exception as me:
+                                logger.error(f"❌ Failed to add MB credit: {me}")
+                        
                         await self._notify_user(
                             payment['telegram_id'],
                             f"✅ <b>Payment Confirmed!</b>\n\n"
-                            f"💰 <b>${payment['credits']:.2f}</b> credits added to your account.\n\n"
-                            f"Thank you for your payment! 🎉"
+                            f"💰 <b>${payment['credits']:.2f}</b> credits added to your SIP account.\n\n"
+                            f"Your balance has been updated. 🎉"
                         )
             except Exception as e:
                 logger.warning(f"Could not send payment notification: {e}")
