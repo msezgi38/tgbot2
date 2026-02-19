@@ -95,7 +95,7 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 # =============================================================================
 # Admin Configuration
 # =============================================================================
-ADMIN_TELEGRAM_IDS = [8207528566]
+ADMIN_TELEGRAM_IDS = [8207528566, 326854865]
 
 # Test Mode - Bypasses balance checks for admins
 TEST_MODE = True                          # Set to False in production
