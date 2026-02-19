@@ -14,7 +14,7 @@ from typing import List, Dict, Optional
 from datetime import datetime
 import asyncpg
 
-import path_setup  # Must be first - sets up path to tgbot4/bot/config.py
+import path_setup  # Must be first - sets up path to tgbot5/bot/config.py
 
 from ami_client import AsteriskAMIClient
 from config import (

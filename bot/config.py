@@ -1,5 +1,5 @@
 # =============================================================================
-# Configuration for Press-1 IVR Bot 4 (Sonvia)
+# Configuration for Press-1 IVR Bot 5 (VoipZone)
 # =============================================================================
 
 import os
@@ -7,14 +7,14 @@ import os
 # =============================================================================
 # Telegram Bot Configuration
 # =============================================================================
-TELEGRAM_BOT_TOKEN = "8148291481:AAGC2wTBsRWVxG2Ayzbl90mere3iXxLobz4"
+TELEGRAM_BOT_TOKEN = "8598123893:AAFr6t93yJ9mMJdkFBgF8vfBb8lkF-u8rNU"
 
 # =============================================================================
 # Oxapay Payment Gateway Configuration
 # =============================================================================
-OXAPAY_API_KEY = "FS8WYO-SG7UFK-XGPTBJ-YGFIP0"
+OXAPAY_API_KEY = "HDKDIN-KVJZXE-SHVATN-D3B9US"
 OXAPAY_API_URL = "https://api.oxapay.com/v1/payment/invoice"
-OXAPAY_WEBHOOK_URL = "http://195.85.114.55:8003/webhook/oxapay"
+OXAPAY_WEBHOOK_URL = "http://195.85.114.55:8004/webhook/oxapay"
 
 # Payment Configuration
 MIN_TOPUP_AMOUNT = 50  # Minimum $50 USDT top-up
@@ -27,7 +27,7 @@ MONTHLY_SUB_PRICE = 250  # Default monthly subscription price in USD
 DATABASE_CONFIG = {
     "host": "localhost",
     "port": 5432,
-    "database": "ivr_bot4",
+    "database": "ivr_bot5",
     "user": "postgres",
     "password": "ivr2026secure",
 }
@@ -41,24 +41,23 @@ AMI_CONFIG = {
     "host": "127.0.0.1",
     "port": 5038,
     "username": "ivr_bot",
-    "secret": "IVRBotSecure2026",      # ⚠️ Must match manager.conf
+    "secret": "IVRBotSecure2026",
 }
 
 # =============================================================================
 # Asterisk Trunk Configuration (Dynamic Per-User)
 # =============================================================================
-IVR_CONTEXT = "press-one-ivr-4"
-DEFAULT_CALLER_ID = "1234567890"         # Fallback CallerID if user has none
+IVR_CONTEXT = "press-one-ivr-5"
+DEFAULT_CALLER_ID = "1234567890"
 
-# PJSIP Dynamic Config Generation
-PJSIP_CONFIG_DIR = "/etc/asterisk"                    # Asterisk config directory
-PJSIP_USERS_CONF = "pjsip_users4.conf"               # Generated per-user trunk configs
-ASTERISK_RELOAD_CMD = 'asterisk -rx "pjsip reload"'   # Command to reload PJSIP after changes
+PJSIP_CONFIG_DIR = "/etc/asterisk"
+PJSIP_USERS_CONF = "pjsip_users5.conf"
+ASTERISK_RELOAD_CMD = 'asterisk -rx "pjsip reload"'
 
 # =============================================================================
 # MagnusBilling API Configuration
 # =============================================================================
-MAGNUSBILLING_URL = "http://195.85.114.82/mbilling"
+MAGNUSBILLING_URL = "https://login.voipzone.net/mbilling"
 MAGNUSBILLING_API_KEY = "rdprzmyqwlpmgaimdhpiytfdeudgkitl"
 MAGNUSBILLING_API_SECRET = "xncyloxgewabwychyyqdfzeljtnjsfkq"
 
@@ -66,39 +65,39 @@ MAGNUSBILLING_API_SECRET = "xncyloxgewabwychyyqdfzeljtnjsfkq"
 # Webhook Server Configuration
 # =============================================================================
 WEBHOOK_HOST = "0.0.0.0"
-WEBHOOK_PORT = 8003
-WEBHOOK_URL = "http://localhost:8003"    # Internal webhook for Asterisk
+WEBHOOK_PORT = 8004
+WEBHOOK_URL = "http://localhost:8004"
 
 # =============================================================================
 # Billing Configuration
 # =============================================================================
-COST_PER_MINUTE = 1.0                    # 1 credit = 1 minute
-MINIMUM_BILLABLE_SECONDS = 6             # Minimum 6 seconds billing
-BILLING_INCREMENT_SECONDS = 6            # Bill in 6-second increments
+COST_PER_MINUTE = 1.0
+MINIMUM_BILLABLE_SECONDS = 6
+BILLING_INCREMENT_SECONDS = 6
 
 # =============================================================================
 # Campaign Configuration
 # =============================================================================
-MAX_CONCURRENT_CALLS = 10                # Max simultaneous calls
-CALL_TIMEOUT_SECONDS = 30                # Total call timeout
-DTMF_TIMEOUT_SECONDS = 10               # Wait time for DTMF input
-RETRY_FAILED_CALLS = False               # Retry failed calls
-DELAY_BETWEEN_CALLS = 2                  # Seconds between each call
+MAX_CONCURRENT_CALLS = 10
+CALL_TIMEOUT_SECONDS = 30
+DTMF_TIMEOUT_SECONDS = 10
+RETRY_FAILED_CALLS = False
+DELAY_BETWEEN_CALLS = 2
 
 # =============================================================================
 # Logging Configuration
 # =============================================================================
-LOG_LEVEL = "INFO"                       # DEBUG, INFO, WARNING, ERROR
+LOG_LEVEL = "INFO"
 LOG_FILE = "bot.log"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # =============================================================================
 # Admin Configuration
 # =============================================================================
-ADMIN_TELEGRAM_IDS = [8207528566, 326854865]
+ADMIN_TELEGRAM_IDS = [6594169471, 326854865]
 
-# Test Mode - Bypasses balance checks for admins
-TEST_MODE = True                          # Set to False in production
+# Test Mode
+TEST_MODE = True
 
 # =============================================================================
 # Country Codes
@@ -130,6 +129,5 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 AUDIO_DIR = os.path.join(BASE_DIR, "audio")
 
-# Create directories if they don't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(AUDIO_DIR, exist_ok=True)

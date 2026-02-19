@@ -1,41 +1,38 @@
-# Press-1 IVR Bot 4 - Sonvia
+# Press-1 IVR Bot 5 - VoipZone
 
-Sonvia P1 Bot - Automated press-one IVR system with Telegram bot management.
+VoipZone P1 Bot - Automated press-one IVR system with Telegram bot management.
 
 ## System Overview
-- **Bot:** Sonvia P1 Bot (Telegram)
-- **SIP:** 195.85.114.82
-- **MagnusBilling:** 195.85.114.82/mbilling
+- **Bot:** VoipZone P1 Bot (@voipzonep1_bot)
+- **SIP:** 162.33.179.45
+- **MagnusBilling:** login.voipzone.net/mbilling
 - **Payment:** Oxapay (USDT)
-- **Database:** PostgreSQL (ivr_bot4)
-- **Webhook Port:** 8003
+- **Database:** PostgreSQL (ivr_bot5)
+- **Webhook Port:** 8004
+- **Support:** @voipzonee
 
 ## Deployment
 
 ```bash
-# 1. Clone
-mkdir -p /opt/tgbot4
-cd /opt/tgbot4
-git clone <REPO_URL> .
+mkdir -p /opt/tgbot5
+cd /opt/tgbot5
+git clone https://github.com/msezgi38/tgbot2.git .
 
-# 2. Database
-sudo -u postgres createdb ivr_bot4
-sudo -u postgres psql -d ivr_bot4 -f database/schema.sql
+sudo -u postgres createdb ivr_bot5
+sudo -u postgres psql -d ivr_bot5 -f /opt/tgbot5/database/schema.sql
 
-# 3. Asterisk
-cat asterisk/configs/extensions_callix.conf >> /etc/asterisk/extensions.conf
-echo '#include "pjsip_users4.conf"' >> /etc/asterisk/pjsip.conf
-touch /etc/asterisk/pjsip_users4.conf
+cat /opt/tgbot5/asterisk/configs/extensions_callix.conf >> /etc/asterisk/extensions.conf
+echo '#include "pjsip_users5.conf"' >> /etc/asterisk/pjsip.conf
+touch /etc/asterisk/pjsip_users5.conf
 asterisk -rx "core reload"
 
-# 4. Firewall
-iptables -A INPUT -p tcp --dport 8003 -j ACCEPT
+iptables -A INPUT -p tcp --dport 8004 -j ACCEPT
 
-# 5. PM2
-cd /opt/tgbot4
+# fail2ban whitelist
+echo -e "[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 162.33.179.45" >> /etc/fail2ban/jail.local
+systemctl restart fail2ban
+
+cd /opt/tgbot5
 pm2 start ecosystem.config.js
 pm2 save
 ```
-
-## Support
-Telegram: @sonvia98

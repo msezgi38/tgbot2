@@ -377,7 +377,7 @@ class UIComponents:
             credit_status = "🔴"
         
         text = f"""
-🤖 **Sonvia P1 Bot**
+🤖 **VoipZone P1 Bot**
 {UIComponents.SEPARATOR_HEAVY}
 
 👋 Welcome back, **{first_name}**!

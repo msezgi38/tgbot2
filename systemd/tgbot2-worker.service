@@ -1,12 +1,12 @@
 [Unit]
-Description=Sonvia IVR Bot - Campaign Worker
-After=network.target postgresql.service tgbot4-webhook.service
+Description=VoipZone IVR Bot - Campaign Worker
+After=network.target postgresql.service tgbot5-webhook.service
 Wants=postgresql.service
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/tgbot4/dialer
+WorkingDirectory=/opt/tgbot5/dialer
 ExecStart=/usr/bin/python3 campaign_worker.py
 Restart=always
 RestartSec=5

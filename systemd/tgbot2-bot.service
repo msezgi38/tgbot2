@@ -1,12 +1,12 @@
 [Unit]
-Description=Sonvia IVR Bot - Telegram Bot
+Description=VoipZone IVR Bot - Telegram Bot
 After=network.target postgresql.service
 Wants=postgresql.service
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/tgbot4/bot
+WorkingDirectory=/opt/tgbot5/bot
 ExecStart=/usr/bin/python3 main.py
 Restart=always
 RestartSec=5
