@@ -941,6 +941,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mb_user_id = context.user_data.get('topup_mb_user_id', 0)
         user_data = await db.get_or_create_user(user.id)
         
+        # Check if user already has a pending payment
+        async with db.pool.acquire() as conn:
+            existing_pending = await conn.fetchrow("""
+                SELECT track_id, amount, credits, payment_url, created_at
+                FROM payments
+                WHERE user_id = $1 AND status = 'pending'
+                ORDER BY created_at DESC LIMIT 1
+            """, user_data['id'])
+        
+        if existing_pending:
+            await update.message.reply_text(
+                f"⚠️ <b>You already have a pending payment!</b>\n\n"
+                f"💰 Amount: <b>${existing_pending['credits']:.2f}</b>\n"
+                f"🔗 Track ID: <code>{existing_pending['track_id']}</code>\n\n"
+                f"Please complete or wait for your existing payment first.",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💳 Pay Now", url=existing_pending.get('payment_url', ''))],
+                    [InlineKeyboardButton("🔄 Check Status", callback_data=f"credit_check_{existing_pending['track_id']}")],
+                    [InlineKeyboardButton("🔙 SIP Account", callback_data="menu_trunks")]
+                ])
+            )
+            return
+        
         try:
             payment = await oxapay.create_payment(
                 amount=amount,
