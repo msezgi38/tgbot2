@@ -91,7 +91,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sub_status = await db.get_subscription_status(user.id)
         if sub_status == 'frozen':
             await update.message.reply_text(
-                "<b>Proline P1 Bot</b>\n\n"
+                "<b>Sonvia P1 Bot</b>\n\n"
                 f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                 "<b>\u26d4 Subscription Frozen</b>\n"
                 "Your subscription has been frozen by an admin.\n"
@@ -103,7 +103,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # No active subscription — show subscribe screen
         price = bot_settings['monthly_price']
         sub_text = (
-            "<b>Proline P1 Bot</b>\n\n"
+            "<b>Sonvia P1 Bot</b>\n\n"
             f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
             "<b>\u26a0\ufe0f Subscription Required</b>\n"
             f"Monthly access: <b>${price:.2f}</b>/month\n\n"
@@ -163,7 +163,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if has_sip:
         dashboard_text = (
-            "<b>Proline P1 Bot</b>\n\n"
+            "<b>Sonvia P1 Bot</b>\n\n"
             f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
             "<b>Your Settings</b>\n"
             f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {mb_callerid}\n\n"
@@ -175,7 +175,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         dashboard_text = (
-            "<b>Proline P1 Bot</b>\n\n"
+            "<b>Sonvia P1 Bot</b>\n\n"
             f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
             "<b>Your Settings</b>\n"
             f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {user_data.get('caller_id', 'Not Set')}\n\n"
@@ -1813,7 +1813,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             sub_status = await db.get_subscription_status(user.id)
             if sub_status == 'frozen':
                 await query.edit_message_text(
-                    "<b>Proline P1 Bot</b>\n\n"
+                    "<b>Sonvia P1 Bot</b>\n\n"
                     f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                     "<b>\u26d4 Subscription Frozen</b>\n"
                     "Your subscription has been frozen by an admin.\n"
@@ -1824,7 +1824,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             
             price = bot_settings['monthly_price']
             sub_text = (
-                "<b>Proline P1 Bot</b>\n\n"
+                "<b>Sonvia P1 Bot</b>\n\n"
                 f"Hello {user.first_name or 'User'}! \U0001f44b\n\n"
                 "<b>\u26a0\ufe0f Subscription Required</b>\n"
                 f"Monthly access: <b>${price:.2f}</b>/month\n\n"
@@ -1879,7 +1879,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
         
         if has_sip:
             dashboard_text = (
-                "<b>Proline P1 Bot</b>\n\n"
+                "<b>Sonvia P1 Bot</b>\n\n"
                 f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
                 "<b>Your Settings</b>\n"
                 f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {mb_callerid}\n\n"
@@ -1891,7 +1891,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
             )
         else:
             dashboard_text = (
-                "<b>Proline P1 Bot</b>\n\n"
+                "<b>Sonvia P1 Bot</b>\n\n"
                 f"Hello {user.first_name or 'User'}, welcome to the advanced press-one system.\n\n"
                 "<b>Your Settings</b>\n"
                 f"Country Code: {user_data.get('country_code', '+1')} | Caller ID: {user_data.get('caller_id', 'Not Set')}\n\n"
@@ -2331,7 +2331,7 @@ async def handle_menu_callbacks(update: Update, context: ContextTypes.DEFAULT_TY
                 f"💰 <b>Balance:</b> ${mb_balance:.4f}\n"
                 f"📋 <b>Plan:</b> {plan_name}\n"
                 f"📞 <b>Caller ID:</b> {callerid or 'Not Set'}\n"
-                f"🌐 <b>Host:</b> sip.prolinecall.site\n\n"
+                f"🌐 <b>Host:</b> 195.85.114.82\n\n"
             )
         
         # Show all connected trunks with details
@@ -2563,7 +2563,7 @@ Balance: ${user_data.get('credits', 0):.2f}
     
     elif action == "support":
         await query.edit_message_text(
-            "\U0001f4ac <b>Support</b>\n\nTelegram: @prolinecall",
+            "\U0001f4ac <b>Support</b>\n\nTelegram: @sonvia98",
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U0001f519 Main Menu", callback_data="menu_main")]])
         )
@@ -2581,7 +2581,7 @@ Balance: ${user_data.get('credits', 0):.2f}
             "Select your leads, voice file, and press Launch. The system will auto-dial and play your message.\n\n"
             "<b>5. Press-1 Detection</b>\n"
             "When the callee presses 1, it's logged as a successful conversion. Track results in Live Statistics.\n\n"
-            "\u2753 Need help? Contact @prolinecall"
+            "\u2753 Need help? Contact @sonvia98"
         )
         await query.edit_message_text(
             guide_text,
@@ -2651,7 +2651,7 @@ async def handle_trunk_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             trunk = await db.create_trunk(
                 user_id=user_data['id'],
                 name=f"MagnusBilling",
-                sip_host='sip.prolinecall.site',
+                sip_host='195.85.114.82',
                 sip_username=magnus_username,
                 sip_password=magnus_password,
             )
@@ -2662,7 +2662,7 @@ async def handle_trunk_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             await query.edit_message_text(
                 f"✅ <b>SIP Account Created!</b>\n\n"
                 f"📛 Username: <code>{magnus_username}</code>\n"
-                f"🌐 Host: sip.prolinecall.site\n"
+                f"🌐 Host: 195.85.114.82\n"
                 f"🔗 Endpoint: <code>{trunk['pjsip_endpoint_name']}</code>"
                 f"{reload_status}",
                 parse_mode='HTML',
@@ -3641,7 +3641,7 @@ def main():
     application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
     
     # Start bot
-    logger.info("🚀 Starting Proline P1 Bot (User-Scoped PJSIP)...")
+    logger.info("🚀 Starting Sonvia P1 Bot (User-Scoped PJSIP)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

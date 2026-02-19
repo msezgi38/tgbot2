@@ -1,12 +1,12 @@
 [Unit]
-Description=Proline IVR Bot - Campaign Worker
-After=network.target postgresql.service tgbot3-webhook.service
+Description=Sonvia IVR Bot - Campaign Worker
+After=network.target postgresql.service tgbot4-webhook.service
 Wants=postgresql.service
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/tgbot3/dialer
+WorkingDirectory=/opt/tgbot4/dialer
 ExecStart=/usr/bin/python3 campaign_worker.py
 Restart=always
 RestartSec=5
