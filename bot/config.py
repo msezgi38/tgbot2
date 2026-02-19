@@ -1,5 +1,5 @@
 # =============================================================================
-# Configuration for Press-1 IVR Bot 2 (Callix)
+# Configuration for Press-1 IVR Bot 3 (Proline)
 # =============================================================================
 
 import os
@@ -7,14 +7,14 @@ import os
 # =============================================================================
 # Telegram Bot Configuration
 # =============================================================================
-TELEGRAM_BOT_TOKEN = "8309805045:AAFhVcnCMGSEkdThOWu1tS09mVFKWivWz2c"
+TELEGRAM_BOT_TOKEN = "8102627777:AAEme1Bxr8X6UqoOXVyaoDXyG8Zn7AJIGkw"
 
 # =============================================================================
 # Oxapay Payment Gateway Configuration
 # =============================================================================
-OXAPAY_API_KEY = "SPIWDL-YMIWY2-RSRZRO-QB9H59"
+OXAPAY_API_KEY = "OMVHAE-RBKZUN-878OBB-12DIHM"
 OXAPAY_API_URL = "https://api.oxapay.com/v1/payment/invoice"
-OXAPAY_WEBHOOK_URL = "http://195.85.114.55:8001/webhook/oxapay"
+OXAPAY_WEBHOOK_URL = "http://195.85.114.55:8002/webhook/oxapay"
 
 # Payment Configuration
 MIN_TOPUP_AMOUNT = 50  # Minimum $50 USDT top-up
@@ -27,7 +27,7 @@ MONTHLY_SUB_PRICE = 250  # Default monthly subscription price in USD
 DATABASE_CONFIG = {
     "host": "localhost",
     "port": 5432,
-    "database": "ivr_bot2",
+    "database": "ivr_bot3",
     "user": "postgres",
     "password": "ivr2026secure",
 }
@@ -47,27 +47,27 @@ AMI_CONFIG = {
 # =============================================================================
 # Asterisk Trunk Configuration (Dynamic Per-User)
 # =============================================================================
-IVR_CONTEXT = "press-one-ivr-2"
+IVR_CONTEXT = "press-one-ivr-3"
 DEFAULT_CALLER_ID = "1234567890"         # Fallback CallerID if user has none
 
 # PJSIP Dynamic Config Generation
 PJSIP_CONFIG_DIR = "/etc/asterisk"                    # Asterisk config directory
-PJSIP_USERS_CONF = "pjsip_users2.conf"               # Generated per-user trunk configs (separate from bot1)
+PJSIP_USERS_CONF = "pjsip_users3.conf"               # Generated per-user trunk configs (separate from bot1/bot2)
 ASTERISK_RELOAD_CMD = 'asterisk -rx "pjsip reload"'   # Command to reload PJSIP after changes
 
 # =============================================================================
 # MagnusBilling API Configuration
 # =============================================================================
-MAGNUSBILLING_URL = "https://sip.callix.pro/mbilling"
-MAGNUSBILLING_API_KEY = "falnbfnzxrwvwgrnutcbprhjrwjehwme"
-MAGNUSBILLING_API_SECRET = "chfxdcubbngpsrhnpmmebuuntpcxhwvc"
+MAGNUSBILLING_URL = "https://prolinecall.site/mbilling"
+MAGNUSBILLING_API_KEY = "uuwpgkckncagfqraekyxtnaexvtonjlk"
+MAGNUSBILLING_API_SECRET = "iitkvywvzctwghjbjjepiybsdamxordt"
 
 # =============================================================================
 # Webhook Server Configuration
 # =============================================================================
 WEBHOOK_HOST = "0.0.0.0"
-WEBHOOK_PORT = 8001
-WEBHOOK_URL = "http://localhost:8001"    # Internal webhook for Asterisk
+WEBHOOK_PORT = 8002
+WEBHOOK_URL = "http://localhost:8002"    # Internal webhook for Asterisk
 
 # =============================================================================
 # Billing Configuration
@@ -95,7 +95,7 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 # =============================================================================
 # Admin Configuration
 # =============================================================================
-ADMIN_TELEGRAM_IDS = [8500048750]
+ADMIN_TELEGRAM_IDS = [8199628078]
 
 # Test Mode - Bypasses balance checks for admins
 TEST_MODE = True                          # Set to False in production

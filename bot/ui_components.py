@@ -377,7 +377,7 @@ class UIComponents:
             credit_status = "🔴"
         
         text = f"""
-🤖 **Callix Press One**
+🤖 **Proline P1 Bot**
 {UIComponents.SEPARATOR_HEAVY}
 
 👋 Welcome back, **{first_name}**!

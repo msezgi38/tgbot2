@@ -1,9 +1,9 @@
 module.exports = {
     apps: [
         {
-            name: "tgbot2-webhook",
+            name: "tgbot3-webhook",
             script: "webhook_server.py",
-            cwd: "/opt/tgbot2/dialer",
+            cwd: "/opt/tgbot3/dialer",
             interpreter: "python3",
             autorestart: true,
             watch: false,
@@ -11,9 +11,9 @@ module.exports = {
             restart_delay: 5000,
         },
         {
-            name: "tgbot2-worker",
+            name: "tgbot3-worker",
             script: "campaign_worker.py",
-            cwd: "/opt/tgbot2/dialer",
+            cwd: "/opt/tgbot3/dialer",
             interpreter: "python3",
             autorestart: true,
             watch: false,
@@ -21,9 +21,9 @@ module.exports = {
             restart_delay: 5000,
         },
         {
-            name: "tgbot2-bot",
+            name: "tgbot3-bot",
             script: "main.py",
-            cwd: "/opt/tgbot2/bot",
+            cwd: "/opt/tgbot3/bot",
             interpreter: "python3",
             autorestart: true,
             watch: false,

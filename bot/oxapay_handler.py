@@ -71,7 +71,7 @@ class OxapayHandler:
             "orderId": order_id,
             "callbackUrl": self.webhook_url,
             "description": description or f"SIP Credit Top-up ${amount}",
-            "returnUrl": "https://t.me/callixp1_bot",
+            "returnUrl": "https://t.me/prolinepress1_bot",
         }
         
         # Add API key based on endpoint config

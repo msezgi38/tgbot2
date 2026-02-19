@@ -1,12 +1,12 @@
 [Unit]
-Description=Callix IVR Bot - Webhook Server (Port 8001)
+Description=Proline IVR Bot - Webhook Server (Port 8002)
 After=network.target postgresql.service
 Wants=postgresql.service
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/tgbot2/dialer
+WorkingDirectory=/opt/tgbot3/dialer
 ExecStart=/usr/bin/python3 webhook_server.py
 Restart=always
 RestartSec=5

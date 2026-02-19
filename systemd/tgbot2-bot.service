@@ -1,12 +1,12 @@
 [Unit]
-Description=Callix IVR Bot - Telegram Bot
+Description=Proline IVR Bot - Telegram Bot
 After=network.target postgresql.service
 Wants=postgresql.service
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/tgbot2/bot
+WorkingDirectory=/opt/tgbot3/bot
 ExecStart=/usr/bin/python3 main.py
 Restart=always
 RestartSec=5
